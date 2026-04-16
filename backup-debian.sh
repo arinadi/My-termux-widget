@@ -37,8 +37,9 @@ if [ "$FREE_BYTES" -lt "$MIN_FREE_BYTES" ]; then
     exit 1
 fi
 
-if ! proot-distro list | grep -Eq '^\s*debian(\s|$)'; then
-    log "Error: Debian distro is not installed. Please install it before running this backup."
+# Improved check: verify if the rootfs directory exists
+if [ ! -d "/data/data/com.termux/files/usr/var/lib/proot-distro/installed-rootfs/debian" ]; then
+    log "Error: Debian rootfs directory not found. Please install it before running this backup."
     exit 1
 fi
 
