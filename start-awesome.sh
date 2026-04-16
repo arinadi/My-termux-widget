@@ -32,47 +32,31 @@ require_cmd rm
 SOCKET_FILE="$TMP_DIR/.X11-unix/X${DISPLAY_NUM}"
 LOCK_FILE="$TMP_DIR/.X${DISPLAY_NUM}-lock"
 
-if pgrep -f "termux-x11.*${DISPLAY_NAME}" >/dev/null 2>&1; then
-    log "Session already running on display $DISPLAY_NAME. Connecting..."
+if pgrep -f "com.termux.x11.Loader.*${DISPLAY_NAME}" >/dev/null 2>&1; then
+    log "Session already running on $DISPLAY_NAME. Connecting..."
 else
     log "Starting new session on display $DISPLAY_NAME..."
 
     rm -f "$LOCK_FILE" "$SOCKET_FILE" 2>/dev/null || true
 
     termux-x11 "$DISPLAY_NAME" -ac &
-    TERMUX_PID=$!
+    sleep 2
 
-    for attempt in $(seq 1 10); do
-        if [ -e "$SOCKET_FILE" ] || [ -e "$LOCK_FILE" ]; then
-            break
-        fi
-        sleep 1
-    done
-
-    if [ ! -e "$SOCKET_FILE" ] && [ ! -e "$LOCK_FILE" ]; then
-        log "Warning: X11 socket was not detected after startup. The session may not be available yet."
-    else
-        log "X11 socket detected: $SOCKET_FILE"
-    fi
-
-    if ! pgrep -x pulseaudio >/dev/null 2>&1; then
+    if ! pgrep -x "pulseaudio" >/dev/null 2>&1; then
         log "Starting PulseAudio..."
-        if ! pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1 >/dev/null 2>&1; then
-            log "Warning: PulseAudio failed to start. Desktop may still work without audio."
-        fi
-    else
-        log "PulseAudio is already running."
+        pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1 >/dev/null 2>&1 || true
     fi
 
-    if ! pgrep -f "awesome" >/dev/null 2>&1; then
+    # Check for awesome process
+    if ! pgrep -x "awesome" >/dev/null 2>&1; then
         log "Starting Awesome WM..."
         LOG_FILE="$TMP_DIR/awesome-start.log"
         proot-distro login "$DISTRO" --user "$DEBIAN_USER" --shared-tmp -- bash -lc \
             "export DISPLAY='$DISPLAY_NAME' PULSE_SERVER='tcp:127.0.0.1:$PULSE_PORT' && exec awesome" \
             >"$LOG_FILE" 2>&1 &
-        sleep 5
-
-        if ! pgrep -f "awesome" >/dev/null 2>&1; then
+        
+        sleep 3
+        if ! pgrep -x "awesome" >/dev/null 2>&1; then
             log "Error: Awesome WM did not start. Check $LOG_FILE for details."
         else
             log "Awesome WM started successfully."
