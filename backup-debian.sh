@@ -1,21 +1,57 @@
 #!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
 
-# Define backup path
-BACKUP_DIR="$HOME/backup"
-BACKUP_FILE="$BACKUP_DIR/debian-rootfs.tar.gz"
+SCRIPT_NAME=$(basename "$0")
+
+log() {
+    printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
+}
+
+require_cmd() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        log "Error: required command '$1' is not installed or not in PATH."
+        exit 1
+    fi
+}
+
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backup}"
+BACKUP_BASE="$BACKUP_DIR/debian-rootfs"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_FILE="$BACKUP_BASE-$TIMESTAMP.tar.gz"
+INCOMPLETE_FILE="$BACKUP_FILE.incomplete"
+MIN_FREE_BYTES=2147483648
+
+require_cmd proot-distro
+require_cmd df
+require_cmd awk
+require_cmd gzip
 
 mkdir -p "$BACKUP_DIR"
 
-echo "Starting backup of Debian proot-distro..."
-echo "Destination: $BACKUP_FILE"
-echo "This may take several minutes depending on your storage speed..."
+FREE_KB=$(df -Pk "$BACKUP_DIR" | awk 'NR==2 {print $4}')
+FREE_BYTES=$((FREE_KB * 1024))
 
-# Run backup
-proot-distro backup debian --output "$BACKUP_FILE"
-
-if [ $? -eq 0 ]; then
-    echo "Backup successful!"
-    ls -lh "$BACKUP_FILE"
-else
-    echo "Backup failed! Please check if you have enough storage space."
+if [ "$FREE_BYTES" -lt "$MIN_FREE_BYTES" ]; then
+    log "Error: Not enough free space in $BACKUP_DIR. At least 2 GB is required."
+    exit 1
 fi
+
+if ! proot-distro list | grep -Eq '^\s*debian(\s|$)'; then
+    log "Error: Debian distro is not installed. Please install it before running this backup."
+    exit 1
+fi
+
+trap 'rm -f "$INCOMPLETE_FILE"' EXIT
+
+log "Starting Debian backup..."
+log "Destination: $BACKUP_FILE"
+log "This may take several minutes depending on storage speed..."
+
+proot-distro backup debian --output "$INCOMPLETE_FILE"
+
+mv "$INCOMPLETE_FILE" "$BACKUP_FILE"
+trap - EXIT
+
+log "Backup successful!"
+ls -lh "$BACKUP_FILE"
