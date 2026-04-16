@@ -16,15 +16,17 @@ Custom scripts for managing X11 sessions and Debian proot-distro via [Termux:Wid
 ### 🚀 `start-awesome.sh`
 The main entry point for your desktop environment.
 - Configurable via environment variables.
-- Verifies X11 socket creation after startup.
-- Verifies Awesome WM process after launch.
-- Warns if PulseAudio fails but still continues.
+- Improved process detection using specific `pgrep` patterns to avoid false positives.
+- Correctly identifies `termux-x11` via the `com.termux.x11.Loader` process.
+- Verifies X11 socket creation and Awesome WM process after launch.
+- Automatically launches the Termux:X11 app after successful startup.
 
-### 🧹 `cleanup-x11.sh`
+### 🧹 `cleanup-x11.sh` (Linked to `~/cleanup-x11`)
 A safer cleanup utility for X11 sessions.
-- Sends `SIGTERM` first, waits 1 second, then sends `SIGKILL`.
-- Supports an optional display argument (`$1`, default `:1`).
-- Removes stale lock files and socket files.
+- Targets the actual `com.termux.x11.Loader` process.
+- Cleans up X11 lock and socket files for all displays to prevent "server already running" errors.
+- Resets the `.X11-unix` directory with proper permissions.
+- Safer process termination to avoid killing the active session.
 
 ---
 
@@ -73,6 +75,10 @@ A safer cleanup utility for X11 sessions.
 
 ## Changelog
 
+- **2026-04-16**: 
+  - Fixed false-positive process detection in `start-awesome.sh`.
+  - Improved `cleanup-x11` to handle stale sockets and Loader processes more effectively.
+  - Switched to more reliable `pgrep -x` for Awesome WM detection.
 - Added strict shell mode: `set -euo pipefail` in all scripts.
 - Added command dependency checks before execution.
 - Standardized log prefix format for all scripts.
