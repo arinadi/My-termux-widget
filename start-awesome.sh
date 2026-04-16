@@ -66,16 +66,19 @@ else
 
     if ! pgrep -f "awesome" >/dev/null 2>&1; then
         log "Starting Awesome WM..."
-        proot-distro login "$DISTRO" --user "$DEBIAN_USER" --shared-tmp -- env DISPLAY="$DISPLAY_NAME" PULSE_SERVER="tcp:127.0.0.1:$PULSE_PORT" awesome &
-        sleep 3
+        LOG_FILE="$TMP_DIR/awesome-start.log"
+        proot-distro login "$DISTRO" --user "$DEBIAN_USER" --shared-tmp -- bash -lc \
+            "export DISPLAY='$DISPLAY_NAME' PULSE_SERVER='tcp:127.0.0.1:$PULSE_PORT' && exec awesome" \
+            >"$LOG_FILE" 2>&1 &
+        sleep 5
+
+        if ! pgrep -f "awesome" >/dev/null 2>&1; then
+            log "Error: Awesome WM did not start. Check $LOG_FILE for details."
+        else
+            log "Awesome WM started successfully."
+        fi
     else
         log "Awesome WM is already running."
-    fi
-
-    if ! pgrep -f "awesome" >/dev/null 2>&1; then
-        log "Warning: Awesome WM process was not detected after launch."
-    else
-        log "Awesome WM started successfully."
     fi
 fi
 
