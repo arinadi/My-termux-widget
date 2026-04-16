@@ -5,13 +5,10 @@ This repository contains custom scripts for the [Termux:Widget](https://github.c
 ## Shortcuts
 
 ### `start-awesome.sh`
-This script starts the Awesome Window Manager inside a Debian proot-distro environment using Termux:X11.
+This script starts the Awesome Window Manager inside a Debian proot-distro environment using Termux:X11. It calls `cleanup-x11.sh` automatically before starting.
 
-**Key Features:**
-- **Aggressive Cleanup:** Automatically kills previous X11, Xwayland, Pulseaudio, and proot sessions to prevent "Display already in use" errors.
-- **Lock File Management:** Removes stale `.X1-lock` and socket files from `/usr/tmp/`.
-- **Integrated Audio:** Starts Pulseaudio with network support for the proot environment.
-- **Automatic Launch:** Opens the Termux:X11 Android application after starting the server.
+### `cleanup-x11.sh`
+A standalone "Panic" button to forcefully kill all X11, proot, and audio sessions. Use this if your display gets stuck or apps stop responding.
 
 ## Installation
 
